@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Price Alerts – Agriculture System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+.alert-card{border-left:4px solid #e5e7eb;padding:16px 18px;border-radius:12px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start;background:#f9fafb;}
+.alert-card.High{border-color:#ef4444;background:#fff5f5;}
+.alert-card.Medium{border-color:#f59e0b;background:#fffbeb;}
+.alert-card.Low{border-color:#10b981;background:#f0fdf4;}
+.alert-icon{font-size:24px;flex-shrink:0;margin-top:2px;}
+.alert-title{font-size:14px;font-weight:700;color:#1f2937;}
+.alert-msg{font-size:13px;color:#4b5563;margin-top:5px;line-height:1.6;}
+.alert-meta{font-size:11px;color:#9ca3af;margin-top:6px;}
+.delete-btn{margin-left:auto;background:#fee2e2;border:none;color:#dc2626;padding:5px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;flex-shrink:0;}
+.delete-btn:hover{background:#fecaca;}
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+  <div class="sidebar-brand"><h3>🌾 AgriSystem</h3><p>Agriculture Crop Price Portal</p></div>
+  <div class="nav-section">Main</div>
+  <a href="/admin/dashboard" class="nav-link"><span class="ni">🏠</span> Dashboard</a>
+  <a href="/admin/crops"     class="nav-link"><span class="ni">🌿</span> Crop Prices</a>
+  <a href="/admin/farmers"   class="nav-link"><span class="ni">👨‍🌾</span> Farmers</a>
+  <a href="/admin/alerts"    class="nav-link active"><span class="ni">🔔</span> Price Alerts</a>
+  <a href="/admin/reports"   class="nav-link"><span class="ni">📊</span> Reports</a>
+  <div class="nav-section">Admin</div>
+  <a href="/admin/users"     class="nav-link"><span class="ni">👥</span> User Management</a>
+  <div class="sidebar-footer">
+    <div class="user-chip"><div class="avatar">{{ session.fullname[0] }}</div>
+    <div class="user-info"><strong>{{ session.fullname }}</strong><span>Administrator</span></div></div>
+    <a href="/logout" class="logout-link">🚪 Sign Out</a>
+  </div>
+</div>
+
+<div class="main">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="flash-msg flash-{{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+
+  <div class="topbar"><h1>🔔 Price Alerts Management</h1></div>
+
+  <!-- ADD ALERT FORM -->
+  <div class="card">
+    <div class="card-title">➕ Create New Price Alert</div>
+    <form action="/admin/alerts/add" method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Crop Name</label>
+          <input name="crop_name" placeholder="e.g. Paddy" required>
+        </div>
+        <div class="form-group">
+          <label>Market Name</label>
+          <input name="market_name" placeholder="e.g. Coimbatore APMC">
+        </div>
+        <div class="form-group">
+          <label>Alert Type</label>
+          <select name="alert_type">
+            <option value="Rise">📈 Price Rise</option>
+            <option value="Fall">📉 Price Fall</option>
+            <option value="Stable">📊 Stable</option>
+            <option value="Advisory">📋 Advisory</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Severity</label>
+          <select name="severity">
+            <option value="High">🔴 High</option>
+            <option value="Medium">🟡 Medium</option>
+            <option value="Low">🟢 Low</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2;min-width:280px;">
+          <label>Alert Message</label>
+          <textarea name="message" rows="2" placeholder="e.g. Paddy price rose 12% – good time to sell!" required style="resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <button type="submit" class="btn btn-green">🔔 Create Alert</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ALERTS LIST -->
+  <div class="card">
+    <div class="card-title">📋 All Price Alerts ({{ alerts|length }})</div>
+    {% for a in alerts %}
+    <div class="alert-card {{ a.severity }}">
+      <div class="alert-icon">
+        {{ '📈' if a.alert_type=='Rise' else ('📉' if a.alert_type=='Fall' else ('📊' if a.alert_type=='Stable' else '📋')) }}
+      </div>
+      <div style="flex:1;">
+        <div class="alert-title">
+          {{ a.crop_name or 'General' }} – {{ a.alert_type }}
+          <span class="badge badge-{{ 'red' if a.severity=='High' else ('gold' if a.severity=='Medium' else 'green') }}" style="margin-left:6px;">{{ a.severity }}</span>
+          {% if not a.is_read %}<span class="badge badge-blue" style="margin-left:5px;">NEW</span>{% endif %}
+        </div>
+        <div class="alert-msg">{{ a.message }}</div>
+        <div class="alert-meta">
+          📍 {{ a.market_name or '–' }} &nbsp;|&nbsp;
+          🕐 {{ a.created_at }}
+        </div>
+      </div>
+      <a href="/admin/alerts/delete/{{ a.id }}" onclick="return confirm('Delete this alert?')">
+        <button class="delete-btn">🗑 Delete</button>
+      </a>
+    </div>
+    {% else %}
+    <div style="text-align:center;color:#9ca3af;padding:40px;font-size:14px;">
+      No alerts yet. Create your first alert above!
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+</body>
+</html>

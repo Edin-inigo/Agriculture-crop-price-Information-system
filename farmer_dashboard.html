@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farmer Portal – Agriculture System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+body{background:#f0f7f4;}
+.topnav{background:#1b4332;padding:0 28px;display:flex;justify-content:space-between;align-items:center;height:60px;position:sticky;top:0;z-index:100;}
+.topnav-brand{color:white;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.topnav-right{display:flex;align-items:center;gap:14px;}
+.welcome-chip{color:rgba(255,255,255,0.7);font-size:13px;}
+.logout-btn{padding:7px 16px;background:rgba(255,255,255,0.12);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;}
+.logout-btn:hover{background:rgba(255,255,255,0.22);}
+.fcontainer{max-width:1080px;margin:0 auto;padding:28px 20px 60px;}
+.ticker-wrap{background:linear-gradient(135deg,#7f1d1d,#991b1b);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:22px;overflow:hidden;}
+.ticker-label{color:#fca5a5;font-size:11px;font-weight:700;white-space:nowrap;background:rgba(255,255,255,0.1);padding:3px 9px;border-radius:5px;}
+.ticker-scroll{overflow:hidden;flex:1;}
+.ticker-text{color:white;font-size:13px;white-space:nowrap;display:inline-block;animation:tick 20s linear infinite;}
+@keyframes tick{0%{transform:translateX(100vw);}100%{transform:translateX(-100%)}}
+.fstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px;}
+.fstat{background:white;border-radius:14px;padding:18px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+.fstat-icon{font-size:26px;margin-bottom:6px;}
+.fstat-num{font-size:24px;font-weight:700;color:#1b4332;}
+.fstat-lbl{font-size:11px;color:#6b7280;margin-top:2px;}
+.crop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+.crop-card{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:14px;padding:16px;transition:0.2s;}
+.crop-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(64,145,108,0.15);}
+.crop-name{font-size:15px;font-weight:700;color:#1b4332;}
+.crop-var{font-size:11px;color:#6b7280;margin-top:1px;}
+.crop-price{font-size:22px;font-weight:700;color:#065f46;margin:8px 0 2px;}
+.crop-mkt{font-size:11px;color:#6b7280;}
+.crop-tags{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.tag{padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;}
+.tag-s{background:#dbeafe;color:#1e40af;}
+.tag-g{background:#d1fae5;color:#065f46;}
+.tag-d{background:#f3f4f6;color:#6b7280;}
+.notif-item{border-left:3px solid #40916c;padding:11px 14px;background:#f0fdf4;border-radius:9px;margin-bottom:9px;}
+.notif-msg{font-size:13px;color:#1f2937;line-height:1.6;}
+.notif-meta{font-size:11px;color:#9ca3af;margin-top:3px;}
+.fsearch{width:100%;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;font-family:inherit;font-size:13px;outline:none;margin-bottom:14px;}
+.fsearch:focus{border-color:#40916c;}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-brand">🌾 Agriculture Crop Price Portal</div>
+  <div class="topnav-right">
+    <span class="welcome-chip">👋 {{ session.fullname }}</span>
+    <a href="/logout" class="logout-btn">🚪 Logout</a>
+  </div>
+</div>
+
+<div class="fcontainer">
+
+  {% if alerts %}
+  <div class="ticker-wrap">
+    <span class="ticker-label">🔔 LIVE</span>
+    <div class="ticker-scroll">
+      <span class="ticker-text">{% for a in alerts %}⚡ {{ a.message }} &nbsp;&nbsp;|&nbsp;&nbsp;{% endfor %}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="fstats">
+    <div class="fstat"><div class="fstat-icon">🌾</div><div class="fstat-num">{{ crops|length }}</div><div class="fstat-lbl">Crops in Market</div></div>
+    <div class="fstat"><div class="fstat-icon">📨</div><div class="fstat-num">{{ notifications|length }}</div><div class="fstat-lbl">Notifications</div></div>
+    <div class="fstat"><div class="fstat-icon">🔔</div><div class="fstat-num">{{ alerts|length }}</div><div class="fstat-lbl">Active Alerts</div></div>
+    <div class="fstat"><div class="fstat-icon">📅</div><div class="fstat-num" id="todayDate" style="font-size:13px;margin-top:4px;"></div><div class="fstat-lbl">Today</div></div>
+  </div>
+
+  <!-- CROP CARDS -->
+  <div class="card">
+    <div class="card-title">🌿 Today's Market Crop Prices</div>
+    <input class="fsearch" placeholder="🔍 Search crop, market, district…" oninput="filterCrops(this.value)">
+    <div class="crop-grid" id="cropGrid">
+      {% for c in crops %}
+      <div class="crop-card" data-s="{{ c.crop_name }} {{ c.variety or '' }} {{ c.market_name }} {{ c.district or '' }}">
+        <div class="crop-name">{{ c.crop_name }}</div>
+        <div class="crop-var">{{ c.variety or 'Standard' }}</div>
+        <div class="crop-price">₹{{ c.price_per_kg }}<small style="font-size:12px;font-weight:400;color:#6b7280;">/kg</small></div>
+        <div class="crop-mkt">📍 {{ c.market_name }}</div>
+        <div class="crop-tags">
+          <span class="tag tag-s">{{ c.season }}</span>
+          <span class="tag tag-g">{{ c.quality_grade }}</span>
+          <span class="tag tag-d">{{ c.district or 'TN' }}</span>
+        </div>
+      </div>
+      {% else %}
+      <div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:36px;">No crop prices available yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- PRICE TABLE -->
+    <div class="card">
+      <div class="card-title">📋 Price Summary</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Crop</th><th>₹/kg</th><th>Market</th><th>Season</th></tr></thead>
+          <tbody>
+            {% for c in crops %}
+            <tr>
+              <td><strong>{{ c.crop_name }}</strong></td>
+              <td style="color:#065f46;font-weight:700;">₹{{ c.price_per_kg }}</td>
+              <td>{{ c.market_name }}</td>
+              <td>{{ c.season }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">No data.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="card">
+      <div class="card-title">📨 My Notifications</div>
+      {% for n in notifications %}
+      <div class="notif-item">
+        <div class="notif-msg">{{ n.message }}</div>
+        <div class="notif-meta">👮 {{ n.sent_by_name }} &nbsp;|&nbsp; 🕐 {{ n.created_at.strftime('%d %b %Y, %I:%M %p') if n.created_at else '' }}</div>
+      </div>
+      {% else %}
+      <div style="text-align:center;color:#9ca3af;padding:28px;">No notifications yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('todayDate').textContent=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+function filterCrops(v){const q=v.toLowerCase();document.querySelectorAll('.crop-card').forEach(c=>{c.style.display=c.dataset.s.toLowerCase().includes(q)?'':'none';});}
+</script>
+</body>
+</html>

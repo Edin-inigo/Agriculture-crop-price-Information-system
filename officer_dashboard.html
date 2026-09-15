@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Officer Dashboard – Agriculture System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+.alert-item{border-left:4px solid #ef4444;background:#fff5f5;padding:13px 16px;border-radius:10px;margin-bottom:10px;}
+.alert-item.Medium{border-color:#f59e0b;background:#fffbeb;}
+.alert-item.Low{border-color:#10b981;background:#f0fdf4;}
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+  <div class="sidebar-brand"><h3>🌾 AgriSystem</h3><p>Field Officer Portal</p></div>
+  <div class="nav-section">Menu</div>
+  <a href="/officer/dashboard" class="nav-link active"><span class="ni">🏠</span> Dashboard</a>
+  <a href="/logout"            class="nav-link"><span class="ni">🚪</span> Logout</a>
+  <div class="sidebar-footer">
+    <div class="user-chip"><div class="avatar">{{ session.fullname[0] }}</div><div class="user-info"><strong>{{ session.fullname }}</strong><span>Field Officer</span></div></div>
+  </div>
+</div>
+<div class="main">
+  {% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, msg in msgs %}<div class="flash-msg flash-{{ cat }}">{{ msg }}</div>{% endfor %}{% endwith %}
+  <div class="topbar"><h1>👮 Officer Dashboard</h1></div>
+
+  <div class="card">
+    <div class="card-title">➕ Submit Market Crop Price</div>
+    <form action="/officer/crops/add" method="POST">
+      <div class="form-row">
+        <div class="form-group"><label>Crop Name</label><input name="crop_name" placeholder="e.g. Paddy" required></div>
+        <div class="form-group"><label>Variety</label><input name="variety" placeholder="e.g. IR-36"></div>
+        <div class="form-group"><label>Price (₹/kg)</label><input name="price_per_kg" type="number" step="0.01" required></div>
+        <div class="form-group"><label>Market</label><input name="market_name" placeholder="e.g. APMC Market" required></div>
+        <div class="form-group"><label>District</label><input name="district" placeholder="e.g. Salem"></div>
+        <div class="form-group"><label>Season</label>
+          <select name="season"><option>Kharif</option><option>Rabi</option><option>Summer</option><option>All Season</option></select>
+        </div>
+        <div class="form-group"><label>Moisture %</label><input name="moisture_pct" type="number" step="0.1" value="0"></div>
+        <div class="form-group"><label>Grade</label>
+          <select name="quality_grade"><option value="A">Grade A</option><option value="B">Grade B</option><option value="C">Grade C</option></select>
+        </div>
+      </div>
+      <div style="margin-top:14px;"><button type="submit" class="btn btn-green">📤 Submit Price</button></div>
+    </form>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🔔 Active Price Alerts</div>
+      {% for a in alerts %}
+      <div class="alert-item {{ a.severity }}">
+        <div style="font-size:13px;font-weight:700;">{{ a.alert_type }}
+          <span class="badge badge-{{ 'red' if a.severity=='High' else ('gold' if a.severity=='Medium' else 'green') }}" style="margin-left:6px;">{{ a.severity }}</span>
+        </div>
+        <div style="font-size:13px;color:#4b5563;margin-top:3px;">{{ a.message }}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:3px;">{{ a.created_at.strftime('%d %b %Y') if a.created_at else '' }}</div>
+      </div>
+      {% else %}<div style="text-align:center;color:#9ca3af;padding:28px;">No active alerts.</div>{% endfor %}
+    </div>
+    <div class="card">
+      <div class="card-title">🌿 Recent Market Prices</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Crop</th><th>₹/kg</th><th>Market</th><th>Grade</th></tr></thead>
+          <tbody>
+            {% for c in crops %}
+            <tr>
+              <td><strong>{{ c.crop_name }}</strong></td>
+              <td style="color:#065f46;font-weight:700;">₹{{ c.price_per_kg }}</td>
+              <td>{{ c.market_name }}</td>
+              <td><span class="badge badge-{{ 'green' if c.quality_grade=='A' else ('gold' if c.quality_grade=='B' else 'red') }}">{{ c.quality_grade }}</span></td>
+            </tr>
+            {% else %}<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">No data.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👨‍🌾 Registered Farmers</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Phone</th><th>Village</th><th>District</th><th>Land (ac)</th><th>Crop</th></tr></thead>
+        <tbody>
+          {% for f in farmers %}
+          <tr>
+            <td><strong>{{ f.name }}</strong></td>
+            <td>{{ f.phone }}</td>
+            <td>{{ f.village or '–' }}</td>
+            <td>{{ f.district or '–' }}</td>
+            <td>{{ f.land_acres }}</td>
+            <td><span class="badge badge-green">{{ f.crop_type or '–' }}</span></td>
+          </tr>
+          {% else %}<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">No farmers.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>

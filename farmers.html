@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farmers – Agriculture System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+  <div class="sidebar-brand"><h3>🌾 AgriSystem</h3><p>Agriculture Crop Price Portal</p></div>
+  <div class="nav-section">Main</div>
+  <a href="/admin/dashboard" class="nav-link"><span class="ni">🏠</span> Dashboard</a>
+  <a href="/admin/crops"     class="nav-link"><span class="ni">🌿</span> Crop Prices</a>
+  <a href="/admin/farmers"   class="nav-link active"><span class="ni">👨‍🌾</span> Farmers</a>
+  <a href="/admin/alerts"    class="nav-link"><span class="ni">🔔</span> Price Alerts</a>
+  <a href="/admin/reports"   class="nav-link"><span class="ni">📊</span> Reports</a>
+  <div class="nav-section">Admin</div>
+  <a href="/admin/users"     class="nav-link"><span class="ni">👥</span> User Management</a>
+  <div class="sidebar-footer">
+    <div class="user-chip"><div class="avatar">{{ session.fullname[0] }}</div>
+    <div class="user-info"><strong>{{ session.fullname }}</strong><span>Administrator</span></div></div>
+    <a href="/logout" class="logout-link">🚪 Sign Out</a>
+  </div>
+</div>
+
+<div class="main">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="flash-msg flash-{{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+
+  <div class="topbar">
+    <h1>👨‍🌾 Farmer Management</h1>
+    <input class="search-bar" placeholder="🔍 Search name, village, district…" oninput="filterTable(this.value)">
+  </div>
+
+  <!-- ADD FARMER FORM -->
+  <div class="card">
+    <div class="card-title">➕ Register New Farmer</div>
+    <form action="/admin/farmers/add" method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input name="name" placeholder="e.g. Murugan Selvam" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input name="phone" placeholder="e.g. 9876543210" required maxlength="10">
+        </div>
+        <div class="form-group">
+          <label>Village</label>
+          <input name="village" placeholder="e.g. Palayam">
+        </div>
+        <div class="form-group">
+          <label>District</label>
+          <input name="district" placeholder="e.g. Coimbatore">
+        </div>
+        <div class="form-group">
+          <label>Land (acres)</label>
+          <input name="land_acres" type="number" step="0.01" min="0" placeholder="e.g. 3.5" value="0">
+        </div>
+        <div class="form-group">
+          <label>Primary Crop</label>
+          <input name="crop_type" placeholder="e.g. Paddy">
+        </div>
+        <div class="form-group">
+          <label>Aadhaar No.</label>
+          <input name="aadhaar" placeholder="e.g. 1234-5678-9012">
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button type="submit" class="btn btn-green">➕ Register Farmer</button>
+        <small style="color:#9ca3af;margin-left:14px;">
+          Login auto-created: phone as username, last 4 digits as password
+        </small>
+      </div>
+    </form>
+  </div>
+
+  <!-- FARMERS TABLE -->
+  <div class="card">
+    <div class="card-title">📋 Registered Farmers ({{ farmers|length }})</div>
+    <div class="table-wrap">
+      <table id="farmerTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Phone</th><th>Village</th>
+            <th>District</th><th>Land (ac)</th><th>Crop</th><th>Aadhaar</th><th>Registered</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in farmers %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><strong>{{ f.name }}</strong></td>
+            <td>📱 {{ f.phone }}</td>
+            <td>{{ f.village or '–' }}</td>
+            <td>{{ f.district or '–' }}</td>
+            <td>{{ f.land_acres }}</td>
+            <td><span class="badge badge-green">{{ f.crop_type or '–' }}</span></td>
+            <td style="font-size:11px;color:#9ca3af;">{{ f.aadhaar or '–' }}</td>
+            <td style="font-size:11px;color:#9ca3af;">{{ f.created_at.strftime('%d %b %Y') if f.created_at else '–' }}</td>
+            <td>
+              <a href="/admin/farmers/delete/{{ f.id }}" onclick="return confirm('Delete {{ f.name }}?')">
+                <button class="btn btn-red">🗑</button>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="10" style="text-align:center;color:#9ca3af;padding:40px;">
+              No farmers registered yet. Add your first farmer above! 👨‍🌾
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function filterTable(v) {
+  const q = v.toLowerCase();
+  document.querySelectorAll('#farmerTable tbody tr').forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

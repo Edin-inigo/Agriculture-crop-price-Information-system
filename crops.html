@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crop Prices – Agriculture System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+  <div class="sidebar-brand"><h3>🌾 AgriSystem</h3><p>Agriculture Crop Price Portal</p></div>
+  <div class="nav-section">Main</div>
+  <a href="/admin/dashboard" class="nav-link"><span class="ni">🏠</span> Dashboard</a>
+  <a href="/admin/crops"     class="nav-link active"><span class="ni">🌿</span> Crop Prices</a>
+  <a href="/admin/farmers"   class="nav-link"><span class="ni">👨‍🌾</span> Farmers</a>
+  <a href="/admin/alerts"    class="nav-link"><span class="ni">🔔</span> Price Alerts</a>
+  <a href="/admin/reports"   class="nav-link"><span class="ni">📊</span> Reports</a>
+  <div class="nav-section">Admin</div>
+  <a href="/admin/users"     class="nav-link"><span class="ni">👥</span> User Management</a>
+  <div class="sidebar-footer">
+    <div class="user-chip"><div class="avatar">{{ session.fullname[0] }}</div>
+    <div class="user-info"><strong>{{ session.fullname }}</strong><span>Administrator</span></div></div>
+    <a href="/logout" class="logout-link">🚪 Sign Out</a>
+  </div>
+</div>
+
+<div class="main">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="flash-msg flash-{{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+
+  <div class="topbar">
+    <h1>🌿 Crop Price Management</h1>
+    <input class="search-bar" placeholder="🔍 Search crops, market, district…" oninput="filterTable(this.value)">
+  </div>
+
+  <!-- ADD CROP FORM -->
+  <div class="card">
+    <div class="card-title">➕ Add New Crop Price</div>
+    <form action="/admin/crops/add" method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Crop Name *</label>
+          <input name="crop_name" placeholder="e.g. Paddy" required>
+        </div>
+        <div class="form-group">
+          <label>Variety</label>
+          <input name="variety" placeholder="e.g. IR-36">
+        </div>
+        <div class="form-group">
+          <label>Price (₹/kg) *</label>
+          <input name="price_per_kg" type="number" step="0.01" min="0" placeholder="e.g. 22.50" required>
+        </div>
+        <div class="form-group">
+          <label>Market Name *</label>
+          <input name="market_name" placeholder="e.g. Coimbatore APMC" required>
+        </div>
+        <div class="form-group">
+          <label>District</label>
+          <input name="district" placeholder="e.g. Coimbatore">
+        </div>
+        <div class="form-group">
+          <label>Season</label>
+          <select name="season">
+            <option value="Kharif">Kharif</option>
+            <option value="Rabi">Rabi</option>
+            <option value="Summer">Summer</option>
+            <option value="All Season">All Season</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Moisture %</label>
+          <input name="moisture_pct" type="number" step="0.1" min="0" max="100" placeholder="e.g. 14.0" value="0">
+        </div>
+        <div class="form-group">
+          <label>Quality Grade</label>
+          <select name="quality_grade">
+            <option value="A">Grade A (Best)</option>
+            <option value="B">Grade B</option>
+            <option value="C">Grade C</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button type="submit" class="btn btn-green">➕ Add Crop Price</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- CROPS TABLE -->
+  <div class="card">
+    <div class="card-title">📋 All Crop Price Records ({{ crops|length }})</div>
+    <div class="table-wrap">
+      <table id="cropTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Crop Name</th><th>Variety</th><th>Price/kg</th>
+            <th>Market</th><th>District</th><th>Season</th><th>Grade</th><th>Added On</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in crops %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><strong>{{ c.crop_name }}</strong></td>
+            <td style="color:#6b7280;">{{ c.variety or '–' }}</td>
+            <td><strong style="color:#065f46;">₹{{ c.price_per_kg }}</strong></td>
+            <td>{{ c.market_name }}</td>
+            <td>{{ c.district or '–' }}</td>
+            <td>
+              <span class="badge badge-{{ 'green' if c.season=='Kharif' else ('blue' if c.season=='Rabi' else ('gold' if c.season=='Summer' else 'gray')) }}">
+                {{ c.season }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-{{ 'green' if c.quality_grade=='A' else ('gold' if c.quality_grade=='B' else 'red') }}">
+                {{ c.quality_grade }}
+              </span>
+            </td>
+            <td style="color:#9ca3af;font-size:12px;">{{ c.created_at.strftime('%d %b %Y') if c.created_at else '–' }}</td>
+            <td>
+              <a href="/admin/crops/delete/{{ c.id }}" onclick="return confirm('Delete {{ c.crop_name }}?')">
+                <button class="btn btn-red">🗑</button>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="10" style="text-align:center;color:#9ca3af;padding:40px;">
+              No crop data yet. Add your first crop above! 🌾
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function filterTable(v) {
+  const q = v.toLowerCase();
+  document.querySelectorAll('#cropTable tbody tr').forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

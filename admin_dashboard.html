@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard – Agriculture System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-brand"><h3>🌾 AgriSystem</h3><p>Agriculture Crop Price Portal</p></div>
+  <div class="nav-section">Main</div>
+  <a href="/admin/dashboard" class="nav-link active"><span class="ni">🏠</span> Dashboard</a>
+  <a href="/admin/crops"     class="nav-link"><span class="ni">🌿</span> Crop Prices</a>
+  <a href="/admin/farmers"   class="nav-link"><span class="ni">👨‍🌾</span> Farmers</a>
+  <a href="/admin/alerts"    class="nav-link"><span class="ni">🔔</span> Price Alerts
+    {% if total_alerts > 0 %}<span class="nav-badge">{{ total_alerts }}</span>{% endif %}
+  </a>
+  <a href="/admin/reports"   class="nav-link"><span class="ni">📊</span> Reports</a>
+  <div class="nav-section">Admin</div>
+  <a href="/admin/users"     class="nav-link"><span class="ni">👥</span> User Management</a>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="avatar">{{ session.fullname[0] }}</div>
+      <div class="user-info"><strong>{{ session.fullname }}</strong><span>Administrator</span></div>
+    </div>
+    <a href="/logout" class="logout-link">🚪 Sign Out</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="flash-msg flash-{{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+
+  <div class="topbar">
+    <div>
+      <h1>📊 Admin Dashboard</h1>
+      <div class="date" id="dateStr"></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="fetchWeather()">🌦️ Weather</button>
+      <button class="btn btn-green" onclick="document.getElementById('notifyModal').classList.add('open')">📢 Notify Farmers</button>
+    </div>
+  </div>
+
+  {% if total_alerts > 0 %}
+  <div class="alert-banner">
+    <div class="ab-icon">🔔</div>
+    <div>
+      <h3>{{ total_alerts }} Unread Price Alert{{ 's' if total_alerts > 1 }}</h3>
+      <p>New market alerts need attention. <a href="/admin/alerts" style="color:#e9c46a;font-weight:600;">View Alerts →</a></p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon green">🌱</div><div><div class="stat-number">{{ total_crops }}</div><div class="stat-label">Total Crop Entries</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue">👨‍🌾</div><div><div class="stat-number">{{ total_farmers }}</div><div class="stat-label">Registered Farmers</div></div></div>
+    <div class="stat-card"><div class="stat-icon gold">👮</div><div><div class="stat-number">{{ total_officers }}</div><div class="stat-label">Field Officers</div></div></div>
+    <div class="stat-card"><div class="stat-icon red">🔔</div><div><div class="stat-number">{{ total_alerts }}</div><div class="stat-label">Pending Alerts</div></div></div>
+  </div>
+
+  <!-- CHART + RECENT CROPS -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">📈 Monthly Crop Entries</div></div>
+      <canvas id="cropChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🌿 Recent Crop Prices</div><a href="/admin/crops" class="view-all">View All →</a></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Crop</th><th>Price/kg</th><th>Market</th><th>Grade</th></tr></thead>
+          <tbody>
+            {% for c in recent_crops %}
+            <tr>
+              <td><strong>{{ c.crop_name }}</strong><br><small style="color:#9ca3af">{{ c.variety or '–' }}</small></td>
+              <td><strong>₹{{ c.price_per_kg }}</strong></td>
+              <td>{{ c.market_name }}</td>
+              <td><span class="badge badge-{{ 'green' if c.quality_grade=='A' else ('gold' if c.quality_grade=='B' else 'red') }}">{{ c.quality_grade }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px;">No crop data yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECENT FARMERS + AI -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">👨‍🌾 Recent Farmers</div><a href="/admin/farmers" class="view-all">View All →</a></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>District</th><th>Land</th><th>Crop</th></tr></thead>
+          <tbody>
+            {% for f in recent_farmers %}
+            <tr>
+              <td><strong>{{ f.name }}</strong><br><small style="color:#9ca3af">{{ f.phone }}</small></td>
+              <td>{{ f.district or '–' }}</td>
+              <td>{{ f.land_acres }} ac</td>
+              <td><span class="badge badge-green">{{ f.crop_type or '–' }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px;">No farmers yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">🤖 AI Price Predictor</div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="form-group"><label>Crop Name</label><input id="aiCrop" placeholder="e.g. Paddy"></div>
+        <div class="form-group"><label>Season</label>
+          <select id="aiSeason"><option>Kharif</option><option>Rabi</option><option>Summer</option><option>All Season</option></select>
+        </div>
+        <div class="form-group"><label>District</label><input id="aiDistrict" placeholder="e.g. Coimbatore"></div>
+        <button class="btn btn-green" onclick="runPrediction()" style="width:100%;justify-content:center;">🤖 Predict Price</button>
+        <div id="predResult" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;">
+          <div style="font-size:22px;font-weight:700;color:#065f46;" id="predPrice"></div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;" id="predDetail"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- NOTIFY MODAL -->
+<div class="modal-overlay" id="notifyModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📢 Notify Farmers</div>
+      <button class="modal-close" onclick="document.getElementById('notifyModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label>Message</label>
+      <textarea id="notifMsg" rows="3" placeholder="Type message to farmers…" style="width:100%;padding:10px 13px;border:1px solid #e5e7eb;border-radius:10px;font-family:inherit;font-size:13px;resize:vertical;outline:none;"></textarea>
+    </div>
+    <p style="font-size:12px;color:#6b7280;margin-bottom:8px;">Select Farmers:</p>
+    <div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;max-height:180px;overflow-y:auto;margin-bottom:16px;">
+      {% for f in recent_farmers %}
+      <label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border:1px solid #f3f4f6;margin-bottom:6px;">
+        <input type="checkbox" class="fc" data-id="{{ f.id }}" style="width:16px;height:16px;accent-color:#40916c;flex-shrink:0;">
+        <div><strong style="font-size:13px;">{{ f.name }}</strong><br><small style="color:#9ca3af;">📱 {{ f.phone }} • {{ f.district }}</small></div>
+      </label>
+      {% else %}
+      <div style="text-align:center;color:#9ca3af;padding:16px;font-size:13px;">No farmers registered yet.</div>
+      {% endfor %}
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" onclick="document.getElementById('notifyModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-green" onclick="sendNotifications()" style="flex:1;justify-content:center;">📨 Send Now</button>
+    </div>
+    <div id="notifyResult" style="display:none;margin-top:12px;padding:11px 14px;background:#d1fae5;border-radius:10px;color:#065f46;font-size:13px;"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('dateStr').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+const chartData = {{ chart_data | safe }};
+new Chart(document.getElementById('cropChart'),{
+  type:'bar',
+  data:{
+    labels: chartData.length ? chartData.map(d=>d.month) : ['Jan','Feb','Mar','Apr','May','Jun'],
+    datasets:[{label:'Entries',data:chartData.length ? chartData.map(d=>d.count) : [4,7,3,9,5,8],backgroundColor:'rgba(64,145,108,0.75)',borderRadius:7,borderSkipped:false}]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f3f4f6'}},x:{grid:{display:false}}}}
+});
+
+async function runPrediction(){
+  const crop=document.getElementById('aiCrop').value;
+  if(!crop){alert('Crop name enter பண்ணுங்க!');return;}
+  const res=await fetch('/api/predict_price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({crop_name:crop,season:document.getElementById('aiSeason').value,district:document.getElementById('aiDistrict').value})});
+  const d=await res.json();
+  document.getElementById('predResult').style.display='block';
+  document.getElementById('predPrice').textContent='₹'+d.predicted_price+'/kg';
+  document.getElementById('predDetail').textContent=d.recommendation+' | Trend: '+d.trend;
+}
+
+async function fetchWeather(){
+  const dist=prompt('District name enter பண்ணுங்க:','Chennai');
+  if(!dist)return;
+  const res=await fetch('/api/weather?district='+dist);
+  const d=await res.json();
+  alert('🌦️ '+d.district+'\n🌡️ '+d.temperature+'°C | 💧 '+d.humidity+'%\n🌧️ Rainfall: '+d.rainfall+'mm\n☁️ '+d.condition+'\n📋 '+d.advisory);
+}
+
+async function sendNotifications(){
+  const msg=document.getElementById('notifMsg').value;
+  const ids=[...document.querySelectorAll('.fc:checked')].map(c=>c.dataset.id);
+  if(!msg){alert('Message type பண்ணுங்க!');return;}
+  if(!ids.length){alert('Farmer select பண்ணுங்க!');return;}
+  const res=await fetch('/admin/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({farmer_ids:ids,message:msg,crop_ids:[]})});
+  const d=await res.json();
+  const el=document.getElementById('notifyResult');
+  el.style.display='block';
+  el.textContent='✅ '+d.count+' Notification sent to farmers!';
+  setTimeout(()=>document.getElementById('notifyModal').classList.remove('open'),2000);
+}
+</script>
+</body>
+</html>

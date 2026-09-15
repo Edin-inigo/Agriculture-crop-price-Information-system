@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports – Agriculture System</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+  <div class="sidebar-brand"><h3>🌾 AgriSystem</h3><p>Agriculture Crop Price Portal</p></div>
+  <div class="nav-section">Main</div>
+  <a href="/admin/dashboard" class="nav-link"><span class="ni">🏠</span> Dashboard</a>
+  <a href="/admin/crops"     class="nav-link"><span class="ni">🌿</span> Crop Prices</a>
+  <a href="/admin/farmers"   class="nav-link"><span class="ni">👨‍🌾</span> Farmers</a>
+  <a href="/admin/alerts"    class="nav-link"><span class="ni">🔔</span> Price Alerts</a>
+  <a href="/admin/reports"   class="nav-link active"><span class="ni">📊</span> Reports</a>
+  <div class="nav-section">Admin</div>
+  <a href="/admin/users"     class="nav-link"><span class="ni">👥</span> User Management</a>
+  <div class="sidebar-footer">
+    <div class="user-chip"><div class="avatar">{{ session.fullname[0] }}</div><div class="user-info"><strong>{{ session.fullname }}</strong><span>Administrator</span></div></div>
+    <a href="/logout" class="logout-link">🚪 Sign Out</a>
+  </div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <h1>📊 Analytics &amp; Reports</h1>
+    <button class="btn btn-green" onclick="window.print()">🖨️ Print Report</button>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">📍 Avg Price by District</div></div>
+      <canvas id="districtChart" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🌾 Season-wise Distribution</div></div>
+      <canvas id="seasonChart" height="220"></canvas>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">👨‍🌾 Farmers by District</div></div>
+      <canvas id="farmerChart" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">🏆 Top 10 Crops by Avg Price</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rank</th><th>Crop</th><th>Avg ₹/kg</th><th>Max ₹/kg</th></tr></thead>
+          <tbody>
+            {% for c in top_crops %}
+            <tr>
+              <td><strong>#{{ loop.index }}</strong></td>
+              <td>{{ c.crop_name }}</td>
+              <td>₹{{ "%.2f"|format(c.avg_price) }}</td>
+              <td><span class="badge badge-green">₹{{ "%.2f"|format(c.max_price) }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:24px;">No data yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+const colors=['#40916c','#52b788','#74c69d','#95d5b2','#e9c46a','#f4a261','#2d6a4f','#1b4332','#264653','#e76f51'];
+const dd={{ district_data|safe }};
+const sd={{ season_data|safe }};
+const fd={{ farmer_district|safe }};
+new Chart(document.getElementById('districtChart'),{type:'bar',data:{labels:dd.map(d=>d.district||'Unknown'),datasets:[{label:'Avg ₹/kg',data:dd.map(d=>parseFloat(d.avg_price||0).toFixed(2)),backgroundColor:'rgba(64,145,108,0.75)',borderRadius:7,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f3f4f6'}},x:{grid:{display:false}}}}});
+new Chart(document.getElementById('seasonChart'),{type:'doughnut',data:{labels:sd.map(d=>d.season),datasets:[{data:sd.map(d=>d.count),backgroundColor:colors,borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},cutout:'65%'}});
+new Chart(document.getElementById('farmerChart'),{type:'bar',data:{labels:fd.map(d=>d.district||'Unknown'),datasets:[{label:'Farmers',data:fd.map(d=>d.count),backgroundColor:'rgba(233,196,106,0.8)',borderRadius:7,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f3f4f6'}},x:{grid:{display:false}}}}});
+</script>
+</body>
+</html>
